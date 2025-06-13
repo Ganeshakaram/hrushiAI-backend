@@ -1,26 +1,39 @@
-require("dotenv").config();
+require('dotenv').config();
 const express = require("express");
 const cors = require("cors");
+const axios = require("axios");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+require("dotenv").config();
+
 
 const port = process.env.PORT || 5000;
 
-// Load Gemini API
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-const genAI = new GoogleGenerativeAI(process.env.API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+app.post('/ask', async (req, res) => {
+  const { question } = req.body;
 
-app.post("/ask", async (req, res) => {
   try {
-    const { question } = req.body;
-    const result = await model.generateContent(question);
-    const geminiResponse = await result.response;
-    const data = await geminiResponse.json(); // ✅ Parse the actual model output
+    const response = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        contents: [
+          {
+            parts: [
+              {
+                text: question,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        headers: { "Content-Type": "application/json" },
+      }
+    );
 
-    res.json(data); // ✅ Send proper JSON to frontend
+    res.status(200).json(response.data);
   } catch (error) {
     if (error.response) {
       console.error("Google API error status:", error.response.status);
@@ -28,13 +41,12 @@ app.post("/ask", async (req, res) => {
     } else if (error.request) {
       console.error("No response received from Google API:", error.request);
     } else {
-      console.error("Error setting up request:", error.message);
+      console.error("Error in setting up request:", error.message);
     }
-
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
 app.listen(port, () => {
-  console.log(`🚀 Server running at http://localhost:${port}`);
+  console.log(`Server is running on http://localhost:${port}`);
 });
