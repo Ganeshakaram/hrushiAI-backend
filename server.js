@@ -1,29 +1,26 @@
-require('dotenv').config();
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const axios = require("axios");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
-require("dotenv").config();
-
 
 const port = process.env.PORT || 5000;
+
+// Load Gemini API
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+const genAI = new GoogleGenerativeAI(process.env.API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 app.post("/ask", async (req, res) => {
   try {
     const { question } = req.body;
     const result = await model.generateContent(question);
     const geminiResponse = await result.response;
-    const data = await geminiResponse.json(); // ✅ Parse response as JSON
+    const data = await geminiResponse.json(); // ✅ Parse the actual model output
 
-    res.json(data); // ✅ Send JSON to frontend
-  } catch (error) {
-    console.error("❌ Backend error:", error);
-    res.status(500).json({ error: "Failed to get response from Gemini API" });
-  }
-});
+    res.json(data); // ✅ Send proper JSON to frontend
   } catch (error) {
     if (error.response) {
       console.error("Google API error status:", error.response.status);
@@ -31,12 +28,13 @@ app.post("/ask", async (req, res) => {
     } else if (error.request) {
       console.error("No response received from Google API:", error.request);
     } else {
-      console.error("Error in setting up request:", error.message);
+      console.error("Error setting up request:", error.message);
     }
+
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
 app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+  console.log(`🚀 Server running at http://localhost:${port}`);
 });
