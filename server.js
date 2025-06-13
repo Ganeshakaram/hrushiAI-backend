@@ -11,29 +11,19 @@ require("dotenv").config();
 
 const port = process.env.PORT || 5000;
 
-app.post('/ask', async (req, res) => {
-  const { question } = req.body;
-
+app.post("/ask", async (req, res) => {
   try {
-    const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-      {
-        contents: [
-          {
-            parts: [
-              {
-                text: question,
-              },
-            ],
-          },
-        ],
-      },
-      {
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    const { question } = req.body;
+    const result = await model.generateContent(question);
+    const geminiResponse = await result.response;
+    const data = await geminiResponse.json(); // ✅ Parse response as JSON
 
-    res.status(200).json(response.data);
+    res.json(data); // ✅ Send JSON to frontend
+  } catch (error) {
+    console.error("❌ Backend error:", error);
+    res.status(500).json({ error: "Failed to get response from Gemini API" });
+  }
+});
   } catch (error) {
     if (error.response) {
       console.error("Google API error status:", error.response.status);
